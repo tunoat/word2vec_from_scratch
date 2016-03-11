@@ -28,16 +28,7 @@ sentences = [
  'pizza eat with sauce',
  'noodle eat with soup'
  ]
- 
-#==============================================================================
-# sentences = [
-# 'fred loves pizza',
-# 'marie loves noodle',
-# 'fred hates noodle',
-# 'marie hates pizza'
-# ]
-# 
-#==============================================================================
+
 # 1. create dictionary
 i = 0
 vocab = dict()
@@ -48,7 +39,7 @@ for sentence in sentences:
             vocab[word] = i
             i+= 1
 
-# 2. create the matrix represent of word in sentence
+# 2. skip n-gram training set gen
 import numpy as np
 def n_gram_training_set(windowSize):
     eyeMat = np.eye(len(vocab))
@@ -86,8 +77,9 @@ nn_output_dim = len(vocab) # output layer dimensionality
 # Gradient descent parameters (I picked these by hand)
 epsilon = 0.01 # learning rate for gradient descent
 reg_lambda = 0.01 # regularization strength
+h_node = 5 # hidden node for NN to be a vector of each word
 
-# helper function softmax
+# Helper function softmax
 def softmax(input_x,model):
     #W1, b1, W2, b2 = model['W1'], model['b1'], model['W2'], model['b2']
     W1, W2 = model['W1'],model['W2']
@@ -176,17 +168,28 @@ def build_model(nn_hdim, num_passes=20000, print_loss=False):
      
     return model
 
-# Build a model with a 3-dimensional hidden layer
-model = build_model(5, print_loss=True)
+# Build a model with a n-dimensional hidden layer
+model = build_model(h_node, print_loss=True)
 # Plot the decision boundary
 
+#==============================================================================
+# 
+# The most important point here is we want to know how the word2vec work to get 
+#     king - man + woman = queen 
+# The principle of this is we make the embedded vector for each word from the
+# weight of 'input-to-hidden' in Skip-Gram (while CBOW used the weight of
+# 'hidden-to-output' as word embedded vector)
+#
+#==============================================================================
+
+# Now we see the quality of our word in vector space using PCA
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 pca = PCA(n_components=2)
 pca.fit(model['W1'])
 X_new = pca.transform(model['W1'])
 
-# 11. Plotting to vector space using PCA
+# 3. Plotting to vector space using PCA
 for word in vocab:  
     plt.scatter(X_new[vocab[word]][0],
                 X_new[vocab[word]][1])
@@ -195,6 +198,8 @@ for word in vocab:
 
 import operator
 
+# 4. Last but not least we can play around the word we have train by subtract and
+# add vector of a variety set of words likes king - man + woman = queen
 def cosine_similarity(positive=None, negative=None):  
     ranking = dict()
     ivector = np.zeros((1, model['W1'].shape[1]))
@@ -220,6 +225,9 @@ def cosine_similarity(positive=None, negative=None):
 
 print(cosine_similarity(positive=['fred','noodle'],negative=['pizza']))
 print(cosine_similarity(positive=['marie','pizza'],negative=['noodle']))
-
 print(cosine_similarity(positive=['noodle','sauce'],negative=['soup']))
 print(cosine_similarity(positive=['pizza','soup'],negative=['sauce']))
+
+# NOTE: This is a very dense implementation for toy sample. 
+# More sentence and dimension will make the training getting much slower.
+# Therefore, you need a batch learning, GPU, optimization method to be implement
