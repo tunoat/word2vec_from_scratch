@@ -80,16 +80,8 @@ reg_lambda = 0.01 # regularization strength
 h_node = 5 # hidden node for NN to be a vector of each word
 
 # Helper function softmax
-def softmax(input_x,model):
-    #W1, b1, W2, b2 = model['W1'], model['b1'], model['W2'], model['b2']
-    W1, W2 = model['W1'],model['W2']
-    # Forward propagation
-    #z1 = X.dot(W1) + b1
-    z1 = input_x.dot(W1)
-    a1 = np.tanh(z1)
-    #z2 = a1.dot(W2) + b2
-    z2 = a1.dot(W2)
-    exp_scores = np.exp(z2)
+def softmax(z):
+    exp_scores = np.exp(z)
     probs = exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
     return probs
     
@@ -97,7 +89,10 @@ def softmax(input_x,model):
 def calculate_loss(model):
     #W1, b1, W2, b2 = model['W1'], model['b1'], model['W2'], model['b2']
     W1, W2 = model['W1'],model['W2']
-    probs = softmax(X, model)
+    z1 = X.dot(W1)
+    a1 = np.tanh(z1)
+    z2 = a1.dot(W2)
+    probs = softmax(z2)
     # Calculating the loss
     corect_logprobs = -np.log(probs[range(num_examples), Y])
     data_loss = np.sum(corect_logprobs)
@@ -107,7 +102,11 @@ def calculate_loss(model):
 
 # Helper function to predict an output (0 or 1)
 def predict(model, x):
-    return np.argmax(softmax(x,model), axis=1)
+    W1, W2 = model['W1'],model['W2']
+    z1 = X.dot(W1)
+    a1 = np.tanh(z1)
+    z2 = a1.dot(W2)
+    return np.argmax(softmax(z2), axis=1)
     
 # This function learns parameters for the neural network and returns the model.
 # - nn_hdim: Number of nodes in the hidden layer
@@ -130,14 +129,11 @@ def build_model(nn_hdim, num_passes=20000, print_loss=False):
     for i in xrange(0, num_passes):
  
         # Forward propagation
-        #z1 = X.dot(W1) + b1
         z1 = X.dot(W1)
         a1 = np.tanh(z1)
-        #z2 = a1.dot(W2) + b2
         z2 = a1.dot(W2)
-        exp_scores = np.exp(z2)
-        probs = exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
- 
+        probs = softmax(z2)
+        
         # Backpropagation
         delta3 = probs
         delta3[range(num_examples), Y] -= 1
